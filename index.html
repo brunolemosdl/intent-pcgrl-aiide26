@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Did You Get the Level You Asked For? · AIIDE 2026</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Bridging LLMs and PCGRL for Super Mario Bros. level generation. Interactive slides for the AIIDE 2026 poster.">
+<link rel="icon" href="assets/tiles/question_block_coin.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/slides.css">
+</head>
+<body>
+<div class="viewport" id="viewport">
+<div class="deck" id="deck">
+
+<!-- 1 · TITLE -->
+<section class="slide title-slide" data-title="Title">
+  <div class="t-left">
+    <div class="kicker"><span class="pill">AIIDE 2026</span> Poster session</div>
+    <h1>Did You Get the Level <br>You Asked For?</h1>
+    <p class="subtitle">Bridging LLMs and PCGRL for <i>Super Mario Bros.</i> Level Generation</p>
+    <p class="authors"><b>Bruno Lemos</b> · <b>Luiz Chaimowicz</b><br><span>Universidade Federal de Minas Gerais (UFMG), Brazil</span></p>
+    <div class="logos"><img src="assets/brand/ufmg_logo_primary.png" alt="UFMG"><img src="assets/brand/dcc_logo_primary.png" alt="DCC" class="dcc"><img src="assets/brand/verlab_wordmark.png" alt="VeRLab"></div>
+  </div>
+  <div class="t-right">
+    <div class="bubble">“Packed with enemies and wide pits; a real challenge.”</div>
+    <div class="screen"><img class="px" data-play="hard" alt="A* agent playing a generated level"></div>
+    <div class="screen-cap">generated from the request above · played by an A* agent</div>
+  </div>
+</section>
+
+<!-- 2 · PROBLEM -->
+<section class="slide" data-title="Problem">
+  <h2>You ask for a <span class="hl">flat, empty, smooth</span> level…</h2>
+  <div class="ba" id="ba">
+    <div class="ba-tabs">
+      <button class="on" data-ba="0"><span class="dot red"></span>Corpus generator</button>
+      <button data-ba="1"><span class="dot green"></span>Ours</button>
+    </div>
+    <div class="ba-stage">
+      <img class="px ba-img on" src="assets/fig/before_refine.png" alt="compose-only output">
+      <img class="px ba-img" src="assets/fig/after_refine.png" alt="our output">
+    </div>
+    <div class="ba-cap">
+      <div class="on"><b class="mono">error 0.16</b> &nbsp;enemies, gaps, coins and hills you did not ask for</div>
+      <div><b class="mono">error 0.000</b> &nbsp;every dimension within tolerance · flag still reachable</div>
+    </div>
+  </div>
+  <div class="claim" data-step="1">
+    <b>Generators are material-bound.</b> If every corpus chunk has an enemy, no recombination of chunks has none.
+  </div>
+</section>
+
+<!-- 3 · IDEA -->
+<section class="slide" data-title="Approach">
+  <h2>Separate <span class="hl">what was asked</span> from <span class="hl">how it is built</span></h2>
+  <div class="pipe">
+    <div class="pst c-lang" data-step="0"><div class="pn">A</div><h3>Language bridge</h3>
+      <p>GPT-5.2 turns the request into <b>8 numbers</b>, t&nbsp;∈&nbsp;[0,1]⁸.</p><div class="pvec" id="pvec"></div></div>
+    <div class="parrow" data-step="1">→</div>
+    <div class="pst c-comp" data-step="1"><div class="pn">B</div><h3>Compose</h3>
+      <p>A <b>MaskablePPO</b> policy stitches ~10 real corpus chunks.</p><img class="px" id="pcomp" alt=""></div>
+    <div class="parrow" data-step="2">→</div>
+    <div class="pst c-edit" data-step="2"><div class="pn">C</div><h3>Gated edit</h3>
+      <p>The <b>same policy</b> applies macro-edits. Any edit that breaks the level is <b>reverted</b>.</p><img class="px" id="pedit" alt=""></div>
+    <div class="parrow" data-step="3">→</div>
+    <div class="pst c-gate" data-step="3"><div class="pn">D</div><h3>Polish + A* gate</h3>
+      <p>Exact metric fixes, then an <b>A* agent</b> must finish the level.</p><img class="px" src="assets/gameplay/flat_empty_still.png" alt="" style="width:46%;align-self:center"></div>
+  </div>
+  <div class="claim" data-step="4">The LLM <b>never touches a tile</b>. So we can measure translation error and generation error <b>separately</b>.</div>
+</section>
+
+<!-- 4 · EPISODE -->
+<section class="slide" data-title="Episode">
+  <div class="row-head">
+    <h2>Watch one episode: <span class="hl">compose</span>, then <span class="hl2">edit</span></h2>
+    <div class="seg" id="epCases"></div>
+  </div>
+  <div class="ep">
+    <div class="ep-level"><div class="split" id="epLevel"></div></div>
+    <div class="ep-side">
+      <div class="ep-phase" id="epPhase">compose</div>
+      <div class="ep-err">mean intent error <b id="epErr" class="mono">0.000</b></div>
+      <div class="ep-bars" id="epBars"></div>
+      <div class="ep-legend"><span><i class="tick"></i>target</span><span><i class="bar"></i>measured</span></div>
+    </div>
+  </div>
+  <div class="ep-ctrl">
+    <button id="epPlay" class="btn">▶ Play</button>
+    <input type="range" id="epSlider" min="0" max="10" value="0" aria-label="episode step">
+    <span id="epStep" class="mono">1 / 1</span>
+  </div>
+</section>
+
+<!-- 5 · DEMO -->
+<section class="slide" data-title="Ask and get">
+  <h2>Ask, and get <span class="sub">(recorded GPT-5.2 translations, final 10M-step policy)</span></h2>
+  <div class="chips" id="chips"></div>
+  <div class="demo">
+    <div class="demo-main">
+      <div class="demo-prompt" id="demoPrompt"></div>
+      <div class="split" id="demoLevel"></div>
+      <div class="demo-meta"><span id="demoErr" class="mono"></span><span class="ok">✓ completed by the A* agent</span></div>
+    </div>
+    <div class="demo-side">
+      <div class="screen sm"><img class="px" id="demoPlay" alt="A* agent playing"></div>
+      <div class="demo-bars" id="demoBars"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 6 · CONTROL -->
+<section class="slide" data-title="Control">
+  <h2>Control reaches the boundaries, <span class="hl">including zero</span></h2>
+  <div class="ctl">
+    <div class="ctl-main">
+      <div class="ctl-row">
+        <div class="seg" id="swDims"></div>
+        <div class="sw-val">target <b class="mono" id="swT">0.00</b> → measured <b class="mono" id="swM">0.00</b></div>
+      </div>
+      <input type="range" id="swSlider" min="0" max="4" value="0" step="1" aria-label="target value">
+      <div class="sw-ticks"><span>0</span><span>.25</span><span>.5</span><span>.75</span><span>1</span></div>
+      <div class="split" id="swLevel"></div>
+    </div>
+    <div class="ctl-side">
+      <div class="big"><b>8/8</b><span>dimension sweeps pass<br>(MAE ≤ 0.10, Spearman ρ ≥ 0.8)</span></div>
+      <div class="chart" id="sRq2"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 7 · RESULTS -->
+<section class="slide" data-title="Results">
+  <h2>Results in four numbers</h2>
+  <div class="res4">
+    <div class="r4"><span class="rq">RQ1 · learning vs search</span><b>+1.0</b><p>reward over beam search on all 3 seeds (p = 10⁻⁴), <b>7× faster</b> (64 ms vs 0.47 s)</p><div class="chart" id="sRq1"></div></div>
+    <div class="r4"><span class="rq">RQ3 · off-corpus requests</span><b>−30%</b><p>error vs compose-only on corpus-hostile targets; polish reaches <b>0.004</b> on flat-empty</p><div class="chart" id="sRq3"></div></div>
+    <div class="r4"><span class="rq">RQ4 · language</span><b>0.053</b><p>translation MAE over 46 descriptions, monotonic end-to-end (ρ = 0.97–0.99)</p><div class="chart" id="sRq4"></div></div>
+  </div>
+</section>
+
+<!-- 8 · TAKEAWAY -->
+<section class="slide end-slide" data-title="Takeaway">
+  <div class="end-left">
+    <h2>The request becomes a <span class="hl">numeric contract</span>.</h2>
+    <ul class="end-list">
+      <li><b>Translation</b> missed? Inspect the vector.</li>
+      <li><b>Generator</b> missed? Inspect per-dimension residuals.</li>
+      <li><b>Targets conflict?</b> Reported, not hidden.</li>
+    </ul>
+    <p class="scope">Scope: structural control over a fixed 8-dim vocabulary · one game · no designer study yet.</p>
+  </div>
+  <div class="end-right">
+    <div class="qr-big" id="qrEnd"></div>
+    <div class="qr-cap">Slides, demo &amp; code<br><span id="repoTxt" class="mono"></span></div>
+    <div class="visit">Come talk to us at the poster!</div>
+  </div>
+</section>
+
+</div>
+</div>
+
+<div class="hud" id="hud"><span id="hudN">1 / 8</span><button id="prev" aria-label="previous">‹</button><button id="next" aria-label="next">›</button></div>
+<div class="presenter" id="presenter" hidden>
+  <div class="pr-top"><b id="prTimer" class="mono">5:00</b><span id="prTitle"></span><span class="pr-hint">N: notes · F: fullscreen · R: reset timer</span></div>
+  <div id="prNotes"></div>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script type="module" src="assets/slides.js"></script>
+</body>
+</html>
